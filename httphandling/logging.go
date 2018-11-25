@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"git-codecommit.eu-west-2.amazonaws.com/v1/repos/awskmsluks/config"
+	"github.com/hashicorp/go-uuid"
 )
 
 type accessLog struct {
@@ -35,4 +36,27 @@ func accessLogger(inner http.Handler, c *config.Config) http.Handler {
 		}
 		c.AccessLog(l)
 	})
+}
+
+type eventLog struct {
+	EventID          string    `json:"EventID"`
+	Time             time.Time `json:"Time"`
+	LoginName        string    `json:"LoginName"`
+	Domain           string    `json:"LoginName"`
+	Validated        bool      `json:"Validated"`
+	ValidationFailed bool      `json:"ValidationFailed"`
+	Message          string    `json:"Message"`
+}
+
+func NewEvent(loginName, domain string) (eventLog, error) {
+	eid, err := uuid.GenerateUUID()
+	if err != nil {
+		return eventLog{}, err
+	}
+	return eventLog{
+		EventID:   eid,
+		Time:      time.Now().UTC(),
+		LoginName: loginName,
+		Domain:    domain,
+	}, nil
 }

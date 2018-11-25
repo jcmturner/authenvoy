@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/jcmturner/authenvoy/config"
 )
 
 const appTitle = "Authentication Envoy"
@@ -14,7 +16,10 @@ var buildtime = "Not set"
 var version = "Not set"
 
 func main() {
-	version := flag.Bool("version", false, "Print version information")
+	version := flag.Bool("version", false, "Print version information.")
+	logs := flag.String("log-dir", "./", "Directory to output logs to.")
+	port := flag.Int("port", 8088, "Port to listen on loopback.")
+	krbconf := flag.String("krb5-conf", "./krb5.conf", "Path to krb5.conf file.")
 	//configPath := flag.String("config", "./awskmsluks-config.json", "Specify the path to the configuration file.")
 	flag.Parse()
 
@@ -23,6 +28,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, versionStr())
 		os.Exit(0)
 	}
+
+	c := config.New(*port, *krbconf, *logs)
 }
 
 // Version returns the version number, hash from git and the time of the build.

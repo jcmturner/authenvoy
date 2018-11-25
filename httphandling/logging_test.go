@@ -2,7 +2,6 @@ package httphandling
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,7 +10,6 @@ import (
 
 	"git-codecommit.eu-west-2.amazonaws.com/v1/repos/awskmsluks/config"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/jcmturner/goidentity.v1"
 )
 
 func TestAccessLogger(t *testing.T) {
@@ -34,16 +32,13 @@ func TestAccessLogger(t *testing.T) {
 	}
 	request.Host = "shost"
 	request.RemoteAddr = "1.2.3.4:1234"
-	user := goidentity.NewUser("jcmturner")
-	user.SetDomain("domainName")
-	ctx := context.WithValue(request.Context(), goidentity.CTXKey, &user)
 
 	// Create accessLogger handler and send request
 	response := httptest.NewRecorder()
 	handler := accessLogger(inner, c)
-	handler.ServeHTTP(response, request.WithContext(ctx))
+	handler.ServeHTTP(response, request)
 
-	assert.True(t, strings.HasPrefix(b.String(), `{"SourceIP":"1.2.3.4:1234","Username":"jcmturner","UserRealm":"domainName","StatusCode":204,"Method":"GET","ServerHost":"shost","Path":"/url","QueryString":"query=string","Time":"`), "Log line is %s", b.String())
+	assert.True(t, strings.HasPrefix(b.String(), `{"SourceIP":"1.2.3.4:1234","StatusCode":204,"Method":"GET","ServerHost":"shost","Path":"/url","QueryString":"query=string","Time":"`), "Log line is %s", b.String())
 
 	j := json.NewDecoder(&b)
 	var l accessLog

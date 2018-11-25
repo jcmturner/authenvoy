@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"git-codecommit.eu-west-2.amazonaws.com/v1/repos/awskmsluks/config"
+	"github.com/jcmturner/authenvoy/appcode"
 )
 
 // WrapCommonHandler wraps the handler in the authentication handler if required
@@ -31,10 +32,10 @@ func setHeaders(w http.ResponseWriter) http.ResponseWriter {
 type JSONGenericResponse struct {
 	Message         string
 	HTTPCode        int
-	ApplicationCode int
+	ApplicationCode appcode.AppCode
 }
 
-func respondGeneric(w http.ResponseWriter, httpCode, appCode int, message string) {
+func respondGeneric(w http.ResponseWriter, httpCode int, appCode appcode.AppCode, message string) {
 	e := JSONGenericResponse{
 		Message:         message,
 		HTTPCode:        httpCode,
