@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"git-codecommit.eu-west-2.amazonaws.com/v1/repos/awskmsluks/config"
 	"github.com/hashicorp/go-uuid"
+	"github.com/jcmturner/authenvoy/config"
 )
 
 type accessLog struct {

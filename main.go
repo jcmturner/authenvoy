@@ -3,10 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/jcmturner/authenvoy/config"
+	"github.com/jcmturner/authenvoy/httphandling"
 )
 
 const appTitle = "Authentication Envoy"
@@ -29,7 +32,16 @@ func main() {
 		os.Exit(0)
 	}
 
-	c := config.New(*port, *krbconf, *logs)
+	c, err := config.New(*port, *krbconf, *logs)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s configuration error: %v", appTitle, err)
+		os.Exit(1)
+	}
+
+	socket := fmt.Sprintf("%s:%d", "127.0.0.1", c.Port)
+	c.ApplicationLogf(versionStr())
+	err = http.ListenAndServe(socket, httphandling.NewRouter(c))
+	log.Fatalf("%s exit: %v\n", appTitle, err)
 }
 
 // Version returns the version number, hash from git and the time of the build.

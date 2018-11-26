@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"git-codecommit.eu-west-2.amazonaws.com/v1/repos/awskmsluks/config"
 	"github.com/jcmturner/authenvoy/appcode"
+	"github.com/jcmturner/authenvoy/config"
 )
 
 // WrapCommonHandler wraps the handler in the authentication handler if required
 // and the accessLogger wrapper.
-func WrapCommonHandler(inner http.Handler, authn bool, c *config.Config) http.Handler {
+func WrapCommonHandler(inner http.Handler, c *config.Config) http.Handler {
 	//Wrap with access logger
 	inner = accessLogger(inner, c)
 
