@@ -48,6 +48,7 @@ type eventLog struct {
 	Message              string    `json:"Message"`
 }
 
+// NewEvent creates a new event log item
 func NewEvent(loginName, domain string) (eventLog, error) {
 	eid, err := uuid.GenerateUUID()
 	if err != nil {

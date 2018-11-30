@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	// APIVersion is the version prefix on the ReST URL
 	APIVersion = "v1"
 )
 

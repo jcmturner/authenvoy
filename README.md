@@ -4,7 +4,6 @@
 authenvoy implements provides a simple ReST interface for performing user authentication against a Kerberos Domain Controller (KDC.
 
 ![connectivity diagram](diagram.svg)
-<img src="./diagram.svg">
 
 The aim is to make it simpler for applications that use form based authentication to validate the credentials that are posted to it.
 

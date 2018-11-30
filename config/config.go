@@ -15,9 +15,12 @@ import (
 
 const (
 	logPrefix = "Auth Envoy: "
+	//AccessLog is the access log file name
 	AccessLog = "access.log"
-	AppLog    = "application.log"
-	EventLog  = "event.log"
+	//AppLog is the application log file name
+	AppLog = "application.log"
+	//EventLog is the event log file name
+	EventLog = "event.log"
 )
 
 // Config holds the application's configuration values and loggers.
@@ -38,7 +41,7 @@ type Loggers struct {
 	AccessWriter      *json.Encoder `json:"-"`
 }
 
-// NewConfig returns a new Config instance.
+// New returns a new Config instance.
 func New(port int, krbconf, lp string) (*Config, error) {
 	if port > 65535 || port < 1 {
 		return &Config{}, errors.New("port number invalid")
@@ -191,7 +194,7 @@ func (c *Config) SetEventLogWriter(e *json.Encoder) *Config {
 	return c
 }
 
-// AccessLog write the value provided to the access log.
+// EventLog write the value provided to the access log.
 func (c *Config) EventLog(v interface{}) {
 	if c.Loggers.EventWriter != nil {
 		err := c.Loggers.EventWriter.Encode(v)

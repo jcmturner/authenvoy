@@ -25,13 +25,13 @@ func authenticate(c *config.Config) http.HandlerFunc {
 		creds, err := credsFromPost(c, r)
 		if err != nil {
 			c.ApplicationLogf("bad request: %v", err)
-			respondGeneric(w, http.StatusBadRequest, appcode.BadData, "posted data invalid")
+			respondGeneric(w, http.StatusBadRequest, "posted data invalid")
 			return
 		}
 		event, err := NewEvent(creds.LoginName, creds.Domain)
 		if err != nil {
 			c.ApplicationLogf("error generating new event: %v", err)
-			respondGeneric(w, http.StatusInternalServerError, appcode.LoggingErr, "Error processing request")
+			respondGeneric(w, http.StatusInternalServerError, "Error processing request")
 			return
 		}
 		event.Message = "new authentication request"
@@ -117,23 +117,28 @@ func krbValidate(c *config.Config, creds identity.Credentials, event eventLog) i
 
 	//Get a service ticket to itself
 	tgsReq, err := messages.NewUser2UserTGSReq(k.CName, k.CRealm, cl.Config, k.Ticket, k.DecryptedEncPart.Key, k.CName, false, k.Ticket)
+	if err != nil {
+		err = fmt.Errorf("getting identity info failed - error generating TGS_REQ: %v", err)
+		validationErrEvent(c, &event, err)
+		return id
+	}
 	tgsReq, tgsRep, err := cl.TGSREQ(tgsReq, k.CRealm, k.Ticket, k.DecryptedEncPart.Key, 0)
 	if err != nil {
-		err = fmt.Errorf("validation of credentials failed - service ticket error: %v", err)
+		err = fmt.Errorf("getting identity info failed - service ticket error: %v", err)
 		validationErrEvent(c, &event, err)
 		return id
 	}
 	cl.Destroy() // Client no longer needed so destroy it.
 	err = ticketDecrypt(&tgsRep.Ticket, k.DecryptedEncPart.Key)
 	if err != nil {
-		err = fmt.Errorf("validation of credentials failed - could decrypt service ticket: %v", err)
+		err = fmt.Errorf("getting identity info failed - could decrypt service ticket: %v", err)
 		validationErrEvent(c, &event, err)
 		return id
 	}
 	//Get additional identity info from service ticket
 	id, err = getIdentityInfo(creds, tgsRep.Ticket, k.DecryptedEncPart.Key, event)
 	if err != nil {
-		err = fmt.Errorf("validation of credentials failed - could not get identity information: %v", err)
+		err = fmt.Errorf("getting identity info failed - could not get identity information: %v", err)
 		validationErrEvent(c, &event, err)
 		return id
 	}

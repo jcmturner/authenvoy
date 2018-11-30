@@ -29,17 +29,16 @@ func setHeaders(w http.ResponseWriter) http.ResponseWriter {
 	return w
 }
 
+// JSONGenericResponse is a generic JSON response structure
 type JSONGenericResponse struct {
-	Message         string
-	HTTPCode        int
-	ApplicationCode appcode.AppCode
+	Message  string
+	HTTPCode int
 }
 
-func respondGeneric(w http.ResponseWriter, httpCode int, appCode appcode.AppCode, message string) {
+func respondGeneric(w http.ResponseWriter, httpCode int, message string) {
 	e := JSONGenericResponse{
-		Message:         message,
-		HTTPCode:        httpCode,
-		ApplicationCode: appCode,
+		Message:  message,
+		HTTPCode: httpCode,
 	}
 	respondWithJSON(w, httpCode, e)
 }
