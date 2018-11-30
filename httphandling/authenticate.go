@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jcmturner/authenvoy/appcode"
 	"github.com/jcmturner/authenvoy/config"
 	"github.com/jcmturner/authenvoy/identity"
 	"gopkg.in/jcmturner/gokrb5.v6/client"

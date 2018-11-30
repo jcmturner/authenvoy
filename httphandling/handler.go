@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/jcmturner/authenvoy/appcode"
 	"github.com/jcmturner/authenvoy/config"
 )
 
