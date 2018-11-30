@@ -96,10 +96,12 @@ func krbValidate(c *config.Config, creds identity.Credentials, event eventLog) i
 		Domain:      creds.Domain,
 		LoginName:   creds.LoginName,
 		DisplayName: creds.LoginName,
+		SessionID:   event.EventID,
 	}
 
 	//Set up krb client
 	cl := client.NewClientWithPassword(creds.LoginName, creds.Domain, creds.Password)
+	defer cl.Destroy() // Client no longer needed so destroy it.
 	cl.WithConfig(c.KRB5Conf)
 	cl.GoKrb5Conf.DisablePAFXFast = true
 
@@ -112,6 +114,9 @@ func krbValidate(c *config.Config, creds identity.Credentials, event eventLog) i
 	}
 	//Login completed without error so user is valid
 	id.Valid = true
+	id.AuthTime = k.DecryptedEncPart.AuthTime
+	id.Expiry = k.DecryptedEncPart.EndTime
+	event.Time = k.DecryptedEncPart.AuthTime
 	validationSuccessEvent(c, &event)
 
 	//Get a service ticket to itself
@@ -128,7 +133,6 @@ func krbValidate(c *config.Config, creds identity.Credentials, event eventLog) i
 		validationErrEvent(c, &event, err)
 		return id
 	}
-	cl.Destroy() // Client no longer needed so destroy it.
 	err = ticketDecrypt(&tgsRep.Ticket, k.DecryptedEncPart.Key)
 	if err != nil {
 		err = fmt.Errorf("getting identity info failed - could decrypt service ticket: %v", err)
@@ -136,7 +140,7 @@ func krbValidate(c *config.Config, creds identity.Credentials, event eventLog) i
 		return id
 	}
 	//Get additional identity info from service ticket
-	id, err = getIdentityInfo(creds, tgsRep.Ticket, k.DecryptedEncPart.Key, event)
+	err = addIdentityInfo(&id, creds, tgsRep.Ticket, k.DecryptedEncPart.Key)
 	if err != nil {
 		err = fmt.Errorf("getting identity info failed - could not get identity information: %v", err)
 		validationErrEvent(c, &event, err)
@@ -185,36 +189,21 @@ func ticketDecrypt(tkt *messages.Ticket, key types.EncryptionKey) error {
 	return nil
 }
 
-func getIdentityInfo(creds identity.Credentials, tkt messages.Ticket, key types.EncryptionKey, event eventLog) (identity.Identity, error) {
+func addIdentityInfo(id *identity.Identity, creds identity.Credentials, tkt messages.Ticket, key types.EncryptionKey) error {
 	isPAC, pac, err := getPAC(tkt, key)
 	if isPAC && err != nil {
-		return identity.Identity{}, err
+		return err
 	}
-	event.Time = tkt.DecryptedEncPart.AuthTime
 	if isPAC {
 		// There is a valid PAC. Adding attributes to creds
 		dn := creds.LoginName
 		if pac.KerbValidationInfo.FullName.String() != "" {
 			dn = pac.KerbValidationInfo.FullName.String()
 		}
-		return identity.Identity{
-			Domain:      creds.Domain,
-			LoginName:   creds.LoginName,
-			DisplayName: dn,
-			Groups:      pac.KerbValidationInfo.GetGroupMembershipSIDs(),
-			AuthTime:    tkt.DecryptedEncPart.AuthTime,
-			SessionID:   event.EventID,
-			Expiry:      tkt.DecryptedEncPart.EndTime,
-		}, nil
+		id.DisplayName = dn
+		id.Groups = pac.KerbValidationInfo.GetGroupMembershipSIDs()
 	}
-	return identity.Identity{
-		Domain:      creds.Domain,
-		LoginName:   creds.LoginName,
-		DisplayName: creds.LoginName,
-		AuthTime:    tkt.DecryptedEncPart.AuthTime,
-		SessionID:   event.EventID,
-		Expiry:      tkt.DecryptedEncPart.EndTime,
-	}, nil
+	return nil
 }
 
 func getPAC(tkt messages.Ticket, key types.EncryptionKey) (bool, pac.PACType, error) {
@@ -233,7 +222,7 @@ func getPAC(tkt messages.Ticket, key types.EncryptionKey) (bool, pac.PACType, er
 				if err != nil {
 					return isPAC, p, fmt.Errorf("error unmarshaling PAC: %v", err)
 				}
-				err = p.ProcessPACInfoBuffers(key)
+				err = p.PACInfoMandatoryBuffers(key)
 				return isPAC, p, err
 			}
 		}
