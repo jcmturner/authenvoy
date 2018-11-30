@@ -3,7 +3,7 @@ package identity
 import "time"
 
 type Identity struct {
-	ValidAuth   bool      `json:"ValidAuth"`
+	Valid       bool      `json:"Valid"`
 	Domain      string    `json:"Domain"`
 	LoginName   string    `json:"LoginName"`
 	DisplayName string    `json:"DisplayName"`
@@ -14,7 +14,7 @@ type Identity struct {
 }
 
 type Credentials struct {
-	LoginName string
-	Domain    string
-	Password  string
+	LoginName string `json:"LoginName"`
+	Domain    string `json:"Domain"`
+	Password  string `json:"Password"`
 }

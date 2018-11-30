@@ -1,0 +1,29 @@
+language: go
+
+go:
+  - 1.11.x
+  - master
+
+sudo: required
+
+services:
+  - docker
+
+before_install:
+  - docker run -d -h kdc.test.gokrb5 -v /etc/localtime:/etc/localtime:ro -p 88:88 -p 88:88/udp -p 464:464 -p 464:464/udp --name krb5kdc jcmturner/gokrb5:kdc-centos-default
+
+before_script:
+  - GO_FILES=$(find . -iname '*.go' -type f | grep -v /vendor/)
+
+env:
+  - INTEGRATION=1 TEST_KDC_ADDR=127.0.0.1 DEBIAN_FRONTEND=noninteractive
+
+script:
+  - test -z $(gofmt -s -d -l -e $GO_FILES | tee /dev/fd/2 | xargs | sed 's/\s//g') # Fail if a .go file hasn't been formatted with gofmt
+  - go vet ./...                             # go vet is the official Go static analyzer
+  - go test -v -race ./... # Run all the tests with the race detector enabled and integration tests
+
+addons:
+  hosts:
+    - kdc.test.gokrb5
+

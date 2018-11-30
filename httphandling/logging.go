@@ -39,13 +39,13 @@ func accessLogger(inner http.Handler, c *config.Config) http.Handler {
 }
 
 type eventLog struct {
-	EventID          string    `json:"EventID"`
-	Time             time.Time `json:"Time"`
-	LoginName        string    `json:"LoginName"`
-	Domain           string    `json:"LoginName"`
-	Validated        bool      `json:"Validated"`
-	ValidationFailed bool      `json:"ValidationFailed"`
-	Message          string    `json:"Message"`
+	EventID              string    `json:"EventID"`
+	Time                 time.Time `json:"Time"`
+	LoginName            string    `json:"LoginName"`
+	Domain               string    `json:"Domain"`
+	Validated            bool      `json:"Validated"`
+	ValidationSuccessful bool      `json:"ValidationSuccessful"`
+	Message              string    `json:"Message"`
 }
 
 func NewEvent(loginName, domain string) (eventLog, error) {

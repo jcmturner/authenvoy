@@ -32,18 +32,16 @@ func authenticate(c *config.Config) http.HandlerFunc {
 		if err != nil {
 			c.ApplicationLogf("error generating new event: %v", err)
 			respondGeneric(w, http.StatusInternalServerError, appcode.LoggingErr, "Error processing request")
-		}
-		c.EventLog(event)
-		valid, id, err := krbValidate(c, creds, event)
-		if err != nil {
-			c.ApplicationLogf("error validating: %v", err)
-			respondGeneric(w, http.StatusInternalServerError, appcode.ValidationErr, "Validation error")
-		}
-		if !valid {
-			respondWithJSON(w, http.StatusUnauthorized, id)
 			return
 		}
-		respondWithJSON(w, http.StatusAccepted, id)
+		event.Message = "new authentication request"
+		c.EventLog(event)
+		id := krbValidate(c, creds, event)
+		code := http.StatusUnauthorized
+		if id.Valid {
+			code = http.StatusAccepted
+		}
+		respondWithJSON(w, code, id)
 		return
 	})
 }
@@ -94,7 +92,7 @@ func credsForm(c *config.Config, r *http.Request) (creds identity.Credentials, e
 	return
 }
 
-func krbValidate(c *config.Config, creds identity.Credentials, event eventLog) (bool, identity.Identity, error) {
+func krbValidate(c *config.Config, creds identity.Credentials, event eventLog) identity.Identity {
 	id := identity.Identity{
 		Domain:      creds.Domain,
 		LoginName:   creds.LoginName,
@@ -110,53 +108,51 @@ func krbValidate(c *config.Config, creds identity.Credentials, event eventLog) (
 	k, err := login(cl)
 	if err != nil {
 		err = fmt.Errorf("validation of credentials failed - login error: %v", err)
-		validationErrEvent(c, event, err)
-		return false, id, err
+		validationErrEvent(c, &event, err)
+		return id
 	}
+	//Login completed without error so user is valid
+	id.Valid = true
+	validationSuccessEvent(c, &event)
+
 	//Get a service ticket to itself
-	tkt, _, err := cl.GetServiceTicket(fmt.Sprintf("%s@%s", creds.LoginName, creds.Domain))
+	tgsReq, err := messages.NewUser2UserTGSReq(k.CName, k.CRealm, cl.Config, k.Ticket, k.DecryptedEncPart.Key, k.CName, false, k.Ticket)
+	tgsReq, tgsRep, err := cl.TGSREQ(tgsReq, k.CRealm, k.Ticket, k.DecryptedEncPart.Key, 0)
 	if err != nil {
 		err = fmt.Errorf("validation of credentials failed - service ticket error: %v", err)
-		validationErrEvent(c, event, err)
-		return false, id, err
+		validationErrEvent(c, &event, err)
+		return id
 	}
-	key, _, err := crypto.GetKeyFromPassword(creds.Password, k.CName, k.CRealm, tkt.EncPart.EType, k.PAData)
-	if err != nil {
-		err = fmt.Errorf("validation of credentials failed - could not get key from password: %v", err)
-		validationErrEvent(c, event, err)
-		return false, id, err
-	}
-	err = ticketDecrypt(&tkt, key)
+	cl.Destroy() // Client no longer needed so destroy it.
+	err = ticketDecrypt(&tgsRep.Ticket, k.DecryptedEncPart.Key)
 	if err != nil {
 		err = fmt.Errorf("validation of credentials failed - could decrypt service ticket: %v", err)
-		validationErrEvent(c, event, err)
-		return false, id, err
+		validationErrEvent(c, &event, err)
+		return id
 	}
 	//Get additional identity info from service ticket
-	id, err = getIdentityInfo(creds, tkt, key, event)
+	id, err = getIdentityInfo(creds, tgsRep.Ticket, k.DecryptedEncPart.Key, event)
 	if err != nil {
 		err = fmt.Errorf("validation of credentials failed - could not get identity information: %v", err)
-		validationErrEvent(c, event, err)
-		return false, id, err
+		validationErrEvent(c, &event, err)
+		return id
 	}
-	id.ValidAuth = true
-	validationSuccessEvent(c, event)
-	return true, id, nil
+	return id
 }
 
-func validationErrEvent(c *config.Config, event eventLog, err error) {
+func validationErrEvent(c *config.Config, event *eventLog, err error) {
 	event.Message = err.Error()
-	event.ValidationFailed = true
+	event.ValidationSuccessful = false
 	event.Validated = false
 	event.Time = time.Now().UTC()
-	c.EventLog(event)
+	c.EventLog(*event)
 }
 
-func validationSuccessEvent(c *config.Config, event eventLog) {
+func validationSuccessEvent(c *config.Config, event *eventLog) {
 	event.Message = "authentication successful"
-	event.ValidationFailed = false
+	event.ValidationSuccessful = true
 	event.Validated = true
-	c.EventLog(event)
+	c.EventLog(*event)
 }
 
 func login(cl client.Client) (messages.ASRep, error) {

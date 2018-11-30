@@ -3,12 +3,14 @@ package httphandling
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
-	"git-codecommit.eu-west-2.amazonaws.com/v1/repos/awskmsluks/config"
+	"github.com/jcmturner/authenvoy/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,8 +21,18 @@ func TestAccessLogger(t *testing.T) {
 		return
 	})
 
+	cf, _ := ioutil.TempFile(os.TempDir(), "TEST-krb5.conf")
+	defer os.Remove(cf.Name())
+	cf.WriteString(krb5Conf)
+
 	// Set the config to have a byte buffer for the access encoder
-	c := config.New()
+	c, err := config.New(8088, cf.Name(), os.TempDir())
+	defer os.Remove(os.TempDir() + "/" + config.AccessLog)
+	defer os.Remove(os.TempDir() + "/" + config.EventLog)
+	defer os.Remove(os.TempDir() + "/" + config.AppLog)
+	if err != nil {
+		t.Fatalf("could not configure: %v", err)
+	}
 	var b bytes.Buffer
 	enc := json.NewEncoder(&b)
 	c.SetAccessLogWriter(enc)
