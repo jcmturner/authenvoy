@@ -128,5 +128,5 @@ func TestAuthenticateFailure(t *testing.T) {
 	assert.Equal(t, false, i.Valid)
 	assert.Equal(t, "testuser1", i.LoginName)
 	assert.Equal(t, "TEST.GOKRB5", i.Domain)
-	assert.Equal(t, "", i.SessionID)
+	assert.NotEqual(t, "", i.SessionID)
 }

@@ -151,7 +151,7 @@ func krbValidate(c *config.Config, creds identity.Credentials, event eventLog) i
 func validationErrEvent(c *config.Config, event *eventLog, err error) {
 	event.Message = err.Error()
 	event.ValidationSuccessful = false
-	event.Validated = false
+	event.Validated = true
 	event.Time = time.Now().UTC()
 	c.EventLog(*event)
 }
