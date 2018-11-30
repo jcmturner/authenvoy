@@ -126,8 +126,7 @@ func krbValidate(c *config.Config, creds identity.Credentials, event eventLog) i
 		validationErrEvent(c, &event, err)
 		return id
 	}
-	var tgsRep messages.TGSRep
-	tgsReq, tgsRep, err = cl.TGSREQ(tgsReq, k.CRealm, k.Ticket, k.DecryptedEncPart.Key, 0)
+	_, tgsRep, err := cl.TGSREQ(tgsReq, k.CRealm, k.Ticket, k.DecryptedEncPart.Key, 0)
 	if err != nil {
 		err = fmt.Errorf("getting identity info failed - service ticket error: %v", err)
 		validationErrEvent(c, &event, err)
