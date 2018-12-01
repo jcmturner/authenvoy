@@ -1,11 +1,11 @@
 # authenvoy
 [![Go Report Card](https://goreportcard.com/badge/github.com/jcmturner/authenvoy)](https://goreportcard.com/report/github.com/jcmturner/authenvoy) [![Build Status](https://travis-ci.org/jcmturner/authenvoy.svg?branch=master)](https://travis-ci.org/jcmturner/authenvoy)
 
-authenvoy implements provides a simple ReST interface for performing user authentication against a Kerberos Domain Controller (KDC.
+authenvoy provides a simple ReST interface for performing user authentication against a Kerberos Domain Controller (KDC).
 
 ![connectivity diagram](diagram.svg)
 
-The aim is to make it simpler for applications that use form based authentication to validate the credentials that are posted to it.
+The aim is to make it simpler for applications that use form based authentication to securely validate the credentials that are posted to them.
 
 ### Connectivity
 The authenvoy implements the ambassador pattern.
@@ -22,7 +22,7 @@ http://localhost:8088/v1/authenticate
 ```
 (the port number is configurable)
 
-The user's credentials can be sent in one of two ways:
+The user's credentials can be sent either a a JSON document or as an HTTP form:
 ##### JSON POST
 When POSTing credentials in JSON the following format must be used:
 ```json
@@ -69,11 +69,14 @@ Your code **MUST** check the "Valid" field.
 Other information about the user is also provided. 
 Most of this information is self explanatory but some additional information is available if Active Directory (AD) is used as the KDC.
 * ``DisplayName`` - the full display name of the user in AD
-* ``Groups`` - a list of the groups the user is a member of. These are the underlying SIDs of the AD groups. These can be used for authorization in your application.
+* ``Groups`` - a list of the groups the user is a member of. These are the underlying SIDs of the AD groups. 
+The group SIDs can be used for authorization in your application.
 
-In addition a unique ``SessionID`` is provided. This can be used in the application and is logged in the authenvoy's logs to allow tracing of the user session including the authentication.
+In addition a unique ``SessionID`` is provided. 
+This can be used in the application and is logged in the authenvoy's logs to allow tracing of the user session including the authentication.
 
-The application can choose to use the ``Expiry`` time for re-authentication. This is based on the KDC's configuration for max age of tickets.
+The application can choose to use the ``Expiry`` time for re-authentication. 
+This is derived from the KDC's configuration for max age of tickets.
 
 ##### Failed Authentication
 If authentication fails the response will be:
@@ -110,6 +113,11 @@ There are three special values to this argument:
 * ``stdout`` - all log lines will be sent to stdout.
 * ``stderr`` - all log lines will be sent to stderr.
 * ``null`` - all log lines will be discarded.
+
+The log files generated are:
+* ``event.log`` - this tracks the authentication requests and steps to process it.
+* ``access.log`` - this provides HTTP style access logging in a structured JSON format.
+* ``authenvoy.log`` - this provides logging of any errors or information from the authenvoy process.
 
 ### Building
 ```

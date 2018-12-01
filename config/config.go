@@ -18,7 +18,7 @@ const (
 	//AccessLog is the access log file name
 	AccessLog = "access.log"
 	//AppLog is the application log file name
-	AppLog = "application.log"
+	AppLog = "authenvoy.log"
 	//EventLog is the event log file name
 	EventLog = "event.log"
 )
