@@ -76,7 +76,7 @@ In addition a unique ``SessionID`` is provided.
 This can be used in the application and is logged in the authenvoy's logs to allow tracing of the user session including the authentication.
 
 The application can choose to use the ``Expiry`` time for re-authentication. 
-This is derived from the KDC's configuration for max age of tickets.
+This is derived from the KDC's configuration for the maximum age of tickets.
 
 ##### Failed Authentication
 If authentication fails the response will be:
