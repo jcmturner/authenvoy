@@ -53,6 +53,7 @@ func generateSelfSignedCert() (cert tls.Certificate, key *rsa.PrivateKey, err er
 	return
 }
 
+// ListenAndServeTLS starts a HTTPS listener with an auto generated self signed certificate.
 func ListenAndServeTLS(addr string, handler http.Handler) error {
 	cert, _, err := generateSelfSignedCert()
 	if err != nil {
