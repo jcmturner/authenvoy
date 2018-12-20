@@ -22,6 +22,7 @@ func main() {
 	logs := flag.String("log-dir", "./", "Directory to output logs to.")
 	port := flag.Int("port", 8088, "Port to listen on loopback.")
 	krbconf := flag.String("krb5-conf", "./krb5.conf", "Path to krb5.conf file.")
+	tls := flag.Bool("tls", false, "Enable TLS using self signed certificate.")
 	flag.Parse()
 
 	// Print version information and exit.
@@ -38,7 +39,11 @@ func main() {
 
 	socket := fmt.Sprintf("%s:%d", "127.0.0.1", c.Port)
 	c.ApplicationLogf(versionStr())
-	err = http.ListenAndServe(socket, httphandling.NewRouter(c))
+	if *tls {
+		err = httphandling.ListenAndServeTLS(socket, httphandling.NewRouter(c))
+	} else {
+		err = http.ListenAndServe(socket, httphandling.NewRouter(c))
+	}
 	log.Fatalf("%s exit: %v\n", appTitle, err)
 }
 

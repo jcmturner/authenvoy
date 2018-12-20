@@ -9,9 +9,15 @@ The aim is to make it simpler for applications that use form based authenticatio
 
 ### Connectivity
 The authenvoy implements the ambassador pattern.
-HTTP (not HTTPS) is used between the application and the authenvoy in order to avoid the complexity of certificate management.
-To ensure that this unencrypted HTTP connection is not over the network the authenvoy will _only_ listen on loopback.
+
+The connection from the application to authenvoy is over loopback and therefore does not traverse the network.
+This is enforced as authenvoy is coded to _only_ listen on loopback.
+By default HTTP (not HTTPS) is used between the application and the authenvoy in order to avoid the complexity of certificate management.
+If encryption is desired this can be turned on with the ``-tls`` switch. With this option set authenvoy automatically 
+generates a self signed certificate for encryption. Self signed is sufficient as the loopback interface cannot be spoofed by a remote host.
+
 The connection to the KDC uses the kerberos protocol.
+
 The net result is that the **user's credentials are never sent over the network** other than when they are posted into the application.
 
 ### Usage
@@ -103,6 +109,8 @@ Usage of ./authenvoy:
     	Directory to output logs to. (default "./")
   -port int
     	Port to listen on loopback. (default 8088)
+  -tls
+    	Enable TLS using self signed certificate.
   -version
     	Print version information.
 ```
