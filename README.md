@@ -100,7 +100,7 @@ If authentication fails the response will be:
 ```
 
 ### Configuration
-There are only three configurations needed for authenvoy:
+There are only four configurations needed for authenvoy:
 ```
 Usage of ./authenvoy:
   -krb5-conf string
@@ -127,7 +127,16 @@ The log files generated are:
 * ``access.log`` - this provides HTTP style access logging in a structured JSON format.
 * ``authenvoy.log`` - this provides logging of any errors or information from the authenvoy process.
 
+The ``-tls`` switch will result in authenvoy generating a self signed certificate on start up and using this for a TLS 
+encrypted connection over the loopback interface. Self signed is sufficient as the loopback interface address cannot be 
+spoofed by a remote host. It will require the application to ignore certificate validation errors when talking to 
+authenvoy as there is no trusted certificate authority involved. The certificate generated is not persisted and a new 
+one is generated each time authenvoy is started. 
+The aim here is to achieve encryption, we do not need to rely on the certificate to provide trust of identity as we are 
+only talking to the loopback interface, not a remote network device.
+
+
 ### Building
 ```
-go build -ldflags "-X main.buildtime=`date -u '%FT%T%Z'` -X main.githash=`git rev-parse HEAD`"
+go build -ldflags "-X main.buildtime=`date -u '%FT%T%Z'` -X main.buildhash=`git rev-parse HEAD`"
 ```
