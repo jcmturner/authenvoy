@@ -27,7 +27,7 @@ func authenticate(c *config.Config) http.HandlerFunc {
 			respondGeneric(w, http.StatusBadRequest, "posted data invalid")
 			return
 		}
-		event, err := NewEvent(creds.LoginName, creds.Domain)
+		event, err := newEvent(creds.LoginName, creds.Domain)
 		if err != nil {
 			c.ApplicationLogf("error generating new event: %v", err)
 			respondGeneric(w, http.StatusInternalServerError, "Error processing request")
@@ -187,18 +187,18 @@ func ticketDecrypt(tkt *messages.Ticket, key types.EncryptionKey) error {
 }
 
 func addIdentityInfo(id *identity.Identity, creds identity.Credentials, tkt messages.Ticket, key types.EncryptionKey, c *config.Config) error {
-	isPAC, pac, err := getPAC(tkt, key, c)
+	isPAC, pacInfo, err := getPAC(tkt, key, c)
 	if isPAC && err != nil {
 		return err
 	}
 	if isPAC {
 		// There is a valid PAC. Adding attributes to creds
 		dn := creds.LoginName
-		if pac.KerbValidationInfo.FullName.String() != "" {
-			dn = pac.KerbValidationInfo.FullName.String()
+		if pacInfo.KerbValidationInfo.FullName.String() != "" {
+			dn = pacInfo.KerbValidationInfo.FullName.String()
 		}
 		id.DisplayName = dn
-		id.Groups = pac.KerbValidationInfo.GetGroupMembershipSIDs()
+		id.Groups = pacInfo.KerbValidationInfo.GetGroupMembershipSIDs()
 	}
 	return nil
 }
@@ -210,6 +210,9 @@ func getPAC(tkt messages.Ticket, key types.EncryptionKey, c *config.Config) (boo
 			var ad2 types.AuthorizationData
 			err := ad2.Unmarshal(ad.ADData)
 			if err != nil {
+				continue
+			}
+			if ad2 == nil || len(ad2) < 1 {
 				continue
 			}
 			if ad2[0].ADType == adtype.ADWin2KPAC {
