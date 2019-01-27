@@ -10,13 +10,13 @@ import (
 
 	"github.com/jcmturner/authenvoy/config"
 	"github.com/jcmturner/authenvoy/identity"
-	"gopkg.in/jcmturner/gokrb5.v6/client"
-	"gopkg.in/jcmturner/gokrb5.v6/crypto"
-	"gopkg.in/jcmturner/gokrb5.v6/iana/adtype"
-	"gopkg.in/jcmturner/gokrb5.v6/iana/keyusage"
-	"gopkg.in/jcmturner/gokrb5.v6/messages"
-	"gopkg.in/jcmturner/gokrb5.v6/pac"
-	"gopkg.in/jcmturner/gokrb5.v6/types"
+	"gopkg.in/jcmturner/gokrb5.v7/client"
+	"gopkg.in/jcmturner/gokrb5.v7/crypto"
+	"gopkg.in/jcmturner/gokrb5.v7/iana/adtype"
+	"gopkg.in/jcmturner/gokrb5.v7/iana/keyusage"
+	"gopkg.in/jcmturner/gokrb5.v7/messages"
+	"gopkg.in/jcmturner/gokrb5.v7/pac"
+	"gopkg.in/jcmturner/gokrb5.v7/types"
 )
 
 func authenticate(c *config.Config) http.HandlerFunc {
@@ -100,10 +100,8 @@ func krbValidate(c *config.Config, creds identity.Credentials, event eventLog) i
 	}
 
 	//Set up krb client
-	cl := client.NewClientWithPassword(creds.LoginName, creds.Domain, creds.Password)
+	cl := client.NewClientWithPassword(creds.LoginName, creds.Domain, creds.Password, c.KRB5Conf, client.DisablePAFXFAST(true))
 	defer cl.Destroy() // Client no longer needed so destroy it.
-	cl.WithConfig(c.KRB5Conf)
-	cl.GoKrb5Conf.DisablePAFXFast = true
 
 	//Login the client
 	k, err := login(cl)
@@ -126,7 +124,7 @@ func krbValidate(c *config.Config, creds identity.Credentials, event eventLog) i
 		validationErrEvent(c, &event, err)
 		return id
 	}
-	_, tgsRep, err := cl.TGSREQ(tgsReq, k.CRealm, k.Ticket, k.DecryptedEncPart.Key, 0)
+	_, tgsRep, err := cl.TGSExchange(tgsReq, k.CRealm, k.Ticket, k.DecryptedEncPart.Key, 0)
 	if err != nil {
 		err = fmt.Errorf("getting identity info failed - service ticket error: %v", err)
 		validationErrEvent(c, &event, err)
@@ -139,7 +137,7 @@ func krbValidate(c *config.Config, creds identity.Credentials, event eventLog) i
 		return id
 	}
 	//Get additional identity info from service ticket
-	err = addIdentityInfo(&id, creds, tgsRep.Ticket, k.DecryptedEncPart.Key)
+	err = addIdentityInfo(&id, creds, tgsRep.Ticket, k.DecryptedEncPart.Key, c)
 	if err != nil {
 		err = fmt.Errorf("getting identity info failed - could not get identity information: %v", err)
 		validationErrEvent(c, &event, err)
@@ -163,15 +161,15 @@ func validationSuccessEvent(c *config.Config, event *eventLog) {
 	c.EventLog(*event)
 }
 
-func login(cl client.Client) (messages.ASRep, error) {
+func login(cl *client.Client) (messages.ASRep, error) {
 	if ok, err := cl.IsConfigured(); !ok {
 		return messages.ASRep{}, err
 	}
-	ASReq, err := messages.NewASReqForTGT(cl.Credentials.Realm, cl.Config, cl.Credentials.CName)
+	ASReq, err := messages.NewASReqForTGT(cl.Credentials.Domain(), cl.Config, cl.Credentials.CName())
 	if err != nil {
 		return messages.ASRep{}, fmt.Errorf("error generating new AS_REQ: %v", err)
 	}
-	return cl.ASExchange(cl.Credentials.Realm, ASReq, 0)
+	return cl.ASExchange(cl.Credentials.Domain(), ASReq, 0)
 }
 
 func ticketDecrypt(tkt *messages.Ticket, key types.EncryptionKey) error {
@@ -188,8 +186,8 @@ func ticketDecrypt(tkt *messages.Ticket, key types.EncryptionKey) error {
 	return nil
 }
 
-func addIdentityInfo(id *identity.Identity, creds identity.Credentials, tkt messages.Ticket, key types.EncryptionKey) error {
-	isPAC, pac, err := getPAC(tkt, key)
+func addIdentityInfo(id *identity.Identity, creds identity.Credentials, tkt messages.Ticket, key types.EncryptionKey, c *config.Config) error {
+	isPAC, pac, err := getPAC(tkt, key, c)
 	if isPAC && err != nil {
 		return err
 	}
@@ -205,7 +203,7 @@ func addIdentityInfo(id *identity.Identity, creds identity.Credentials, tkt mess
 	return nil
 }
 
-func getPAC(tkt messages.Ticket, key types.EncryptionKey) (bool, pac.PACType, error) {
+func getPAC(tkt messages.Ticket, key types.EncryptionKey, c *config.Config) (bool, pac.PACType, error) {
 	var isPAC bool
 	for _, ad := range tkt.DecryptedEncPart.AuthorizationData {
 		if ad.ADType == adtype.ADIfRelevant {
@@ -221,7 +219,7 @@ func getPAC(tkt messages.Ticket, key types.EncryptionKey) (bool, pac.PACType, er
 				if err != nil {
 					return isPAC, p, fmt.Errorf("error unmarshaling PAC: %v", err)
 				}
-				err = p.PACInfoMandatoryBuffers(key)
+				err = p.ProcessPACInfoBuffers(key, c.Loggers.ApplicationWriter)
 				return isPAC, p, err
 			}
 		}

@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/jcmturner/gokrb5.v6/config"
+	"gopkg.in/jcmturner/gokrb5.v7/config"
 )
 
 const (
