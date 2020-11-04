@@ -1,5 +1,5 @@
 # authenvoy
-[![Go Report Card](https://goreportcard.com/badge/github.com/jcmturner/authenvoy)](https://goreportcard.com/report/github.com/jcmturner/authenvoy) [![Build Status](https://travis-ci.org/jcmturner/authenvoy.svg?branch=master)](https://travis-ci.org/jcmturner/authenvoy)
+[![Go Report Card](https://goreportcard.com/badge/github.com/jcmturner/authenvoy)](https://goreportcard.com/report/github.com/jcmturner/authenvoy) [![build status](https://github.com/jcmturner/authenvoy/workflows/v1/badge.svg)](https://github.com/jcmturner/authenvoy/actions?query=workflow%3Av1)
 
 authenvoy provides a simple ReST interface for performing user authentication against a Kerberos Domain Controller (KDC).
 
