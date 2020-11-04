@@ -1,0 +1,54 @@
+name: v1
+on:
+  push:
+    paths-ignore:
+      - 'v[2-9]+/**'
+  pull_request:
+    paths-ignore:
+      - 'v[2-9]+/**'
+
+jobs:
+  build:
+    name: Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: [ '1.15.x' ]
+    env:
+      TEST_KDC_ADDR: 127.0.0.1
+    steps:
+      - name: Set up Go ${{ matrix.go }}
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Test well formatted with gofmt
+        run: |
+          # Remove major version sub directories
+          find . -maxdepth 1 -type d -regex '\./v[2-9]+' | xargs -i rm -rf {}
+          GO_FILES=$(find . -iname '*.go' -type f | grep -v /vendor/)
+          test -z $(gofmt -s -d -l -e $GO_FILES | tee /dev/fd/2 | xargs | sed 's/\s//g')
+        id: gofmt
+
+      - name: Unit tests
+        run: |
+          go test -race $(go list ./... | grep -E -v '/v[2-9]+' | grep -v /vendor/)
+        id: unitTests
+
+      - name: Start integration test dependencies
+        run: |
+          sudo docker run -d -h kdc.test.gokrb5 -v /etc/localtime:/etc/localtime:ro -p 88:88 -p 88:88/udp -p 464:464 -p 464:464/udp --name krb5kdc jcmturner/gokrb5:kdc-centos-default
+        id: intgTestDeps
+
+      - name: Tests including integration tests
+        run: |
+          go test -race $(go list ./... | grep -E -v '/v[2-9]+' | grep -v /vendor/)
+        env:
+          INTEGRATION: 1
+        id: intgTests
+
