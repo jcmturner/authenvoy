@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/jcmturner/gokrb5.v7/config"
+	"github.com/jcmturner/gokrb5/v8/config"
 )
 
 const (

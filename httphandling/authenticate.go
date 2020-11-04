@@ -10,13 +10,13 @@ import (
 
 	"github.com/jcmturner/authenvoy/config"
 	"github.com/jcmturner/authenvoy/identity"
-	"gopkg.in/jcmturner/gokrb5.v7/client"
-	"gopkg.in/jcmturner/gokrb5.v7/crypto"
-	"gopkg.in/jcmturner/gokrb5.v7/iana/adtype"
-	"gopkg.in/jcmturner/gokrb5.v7/iana/keyusage"
-	"gopkg.in/jcmturner/gokrb5.v7/messages"
-	"gopkg.in/jcmturner/gokrb5.v7/pac"
-	"gopkg.in/jcmturner/gokrb5.v7/types"
+	"github.com/jcmturner/gokrb5/v8/client"
+	"github.com/jcmturner/gokrb5/v8/crypto"
+	"github.com/jcmturner/gokrb5/v8/iana/adtype"
+	"github.com/jcmturner/gokrb5/v8/iana/keyusage"
+	"github.com/jcmturner/gokrb5/v8/messages"
+	"github.com/jcmturner/gokrb5/v8/pac"
+	"github.com/jcmturner/gokrb5/v8/types"
 )
 
 func authenticate(c *config.Config) http.HandlerFunc {
@@ -100,7 +100,7 @@ func krbValidate(c *config.Config, creds identity.Credentials, event eventLog) i
 	}
 
 	//Set up krb client
-	cl := client.NewClientWithPassword(creds.LoginName, creds.Domain, creds.Password, c.KRB5Conf, client.DisablePAFXFAST(true))
+	cl := client.NewWithPassword(creds.LoginName, creds.Domain, creds.Password, c.KRB5Conf, client.DisablePAFXFAST(true))
 	defer cl.Destroy() // Client no longer needed so destroy it.
 
 	//Login the client
